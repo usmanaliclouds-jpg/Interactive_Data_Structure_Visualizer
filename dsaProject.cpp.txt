@@ -1,0 +1,716 @@
+﻿#include <iostream>
+#include <string>
+#include <sstream>
+
+using namespace std;
+
+// Helper Functions
+template <typename T>
+void mySwap(T& a, T& b) {
+    T temp = a;
+    a = b;
+    b = temp;
+}
+
+int myMax(int a, int b) {
+    if (a > b) return a;
+    return b;
+}
+
+// Configuration (Lowercase as requested)
+const int maxsteps = 5000;
+const int maxheap = 100;
+const int maxnodes = 100;
+const int maxedges = 50;
+const int hashcap = 10;
+const int infval = 9999999;
+
+// Trace System
+string history[maxsteps];
+int stepCount = 0;
+string systemLog = "System Ready";
+
+void resetHistory() {
+    stepCount = 0;
+}
+
+void record(string type, string desc, string data) {
+    if (stepCount >= maxsteps) return;
+
+    size_t pos = desc.find('"');
+    while (pos != string::npos) {
+        desc.replace(pos, 1, "\\\"");
+        pos = desc.find('"', pos + 2);
+    }
+
+    stringstream ss;
+    ss << "{\"type\":\"" << type << "\",\"desc\":\"" << desc << "\",\"data\":" << data << "}";
+    history[stepCount] = ss.str();
+    stepCount++;
+}
+
+// Heap Structure
+class MyHeap {
+public:
+    int arr[maxheap];
+    int size;
+    bool isMin;
+
+    MyHeap() {
+        size = 0;
+        isMin = true;
+    }
+
+    string toJson() {
+        stringstream ss;
+        ss << "[";
+        for (int i = 0; i < size; ++i) {
+            ss << arr[i];
+            if (i < size - 1) ss << ",";
+        }
+        ss << "]";
+        return ss.str();
+    }
+
+    bool check(int a, int b) {
+        if (isMin) return a < b;
+        return a > b;
+    }
+
+    void add(int val) {
+        if (size >= maxheap) return;
+
+        resetHistory();
+        arr[size] = val;
+        int i = size;
+        size++;
+
+        string startState = "{\"arr\":" + toJson() + ",\"indices\":[" + to_string(i) + "]}";
+        record("highlight", "Inserted " + to_string(val), startState);
+
+        while (i > 0) {
+            int p = (i - 1) / 2;
+            string cmpState = "{\"arr\":" + toJson() + ",\"indices\":[" + to_string(i) + "," + to_string(p) + "]}";
+            record("compare", "Comparing with Parent " + to_string(arr[p]), cmpState);
+
+            if (check(arr[i], arr[p])) {
+                mySwap(arr[i], arr[p]);
+                string swapState = "{\"arr\":" + toJson() + ",\"indices\":[" + to_string(i) + "," + to_string(p) + "]}";
+                record("swap", "Swapping", swapState);
+                i = p;
+            }
+            else {
+                string okState = "{\"arr\":" + toJson() + ",\"indices\":[]}";
+                record("ok", "Position Correct", okState);
+                break;
+            }
+        }
+        string finalState = "{\"arr\":" + toJson() + ",\"indices\":[]}";
+        record("final", "Done", finalState);
+    }
+
+    int remove() {
+        resetHistory();
+        if (size == 0) {
+            record("error", "Heap Empty", "{}");
+            return -1;
+        }
+
+        int root = arr[0];
+        string rootState = "{\"arr\":" + toJson() + ",\"indices\":[0]}";
+
+        if (size > 1) {
+            arr[0] = arr[size - 1];
+            size--;
+            record("highlight", "Replaced Root", rootState);
+        }
+        else {
+            size--;
+            record("highlight", "Removed Root", rootState);
+            return root;
+        }
+
+        int i = 0;
+        while (true) {
+            int l = 2 * i + 1;
+            int r = 2 * i + 2;
+            int best = i;
+
+            if (l < size && check(arr[l], arr[best])) best = l;
+            if (r < size && check(arr[r], arr[best])) best = r;
+
+            if (best != i) {
+                string cmpState = "{\"arr\":" + toJson() + ",\"indices\":[" + to_string(i) + "," + to_string(best) + "]}";
+                record("compare", "Comparing children", cmpState);
+
+                mySwap(arr[i], arr[best]);
+
+                string swapState = "{\"arr\":" + toJson() + ",\"indices\":[" + to_string(i) + "," + to_string(best) + "]}";
+                record("swap", "Swapping Down", swapState);
+                i = best;
+            }
+            else {
+                break;
+            }
+        }
+        string finalState = "{\"arr\":" + toJson() + ",\"indices\":[]}";
+        record("final", "Restored", finalState);
+        return root;
+    }
+};
+
+MyHeap heapObj;
+
+// AVL Structure
+struct Node {
+    int key;
+    Node* left;
+    Node* right;
+    int h;
+
+    Node(int k) {
+        key = k;
+        left = nullptr;
+        right = nullptr;
+        h = 1;
+    }
+};
+
+Node* treeRoot = nullptr;
+
+int getH(Node* n) {
+    if (n == nullptr) return 0;
+    return n->h;
+}
+
+void fixH(Node* n) {
+    if (n != nullptr) {
+        n->h = 1 + myMax(getH(n->left), getH(n->right));
+    }
+}
+
+int getBal(Node* n) {
+    if (n == nullptr) return 0;
+    return getH(n->left) - getH(n->right);
+}
+
+string treeJson(Node* n) {
+    if (n == nullptr) return "null";
+    return "{\"k\":" + to_string(n->key) + ",\"h\":" + to_string(getBal(n)) +
+        ",\"l\":" + treeJson(n->left) + ",\"r\":" + treeJson(n->right) + "}";
+}
+
+Node* rotateR(Node* y) {
+    Node* x = y->left;
+    Node* T2 = x->right;
+    x->right = y;
+    y->left = T2;
+    fixH(y);
+    fixH(x);
+    return x;
+}
+
+Node* rotateL(Node* x) {
+    Node* y = x->right;
+    Node* T2 = y->left;
+    y->left = x;
+    x->right = T2;
+    fixH(x);
+    fixH(y);
+    return y;
+}
+
+Node* insertNode(Node* node, int key) {
+    if (node == nullptr) return new Node(key);
+
+    if (key < node->key) node->left = insertNode(node->left, key);
+    else if (key > node->key) node->right = insertNode(node->right, key);
+    else return node;
+
+    fixH(node);
+    int bal = getBal(node);
+
+    if (bal > 1) {
+        if (key < node->left->key) {
+            record("rotate", "Right Rotation", treeJson(node));
+            return rotateR(node);
+        }
+        else {
+            record("rotate", "Left-Right Rotation", treeJson(node));
+            node->left = rotateL(node->left);
+            return rotateR(node);
+        }
+    }
+    if (bal < -1) {
+        if (key > node->right->key) {
+            record("rotate", "Left Rotation", treeJson(node));
+            return rotateL(node);
+        }
+        else {
+            record("rotate", "Right-Left Rotation", treeJson(node));
+            node->right = rotateR(node->right);
+            return rotateL(node);
+        }
+    }
+    return node;
+}
+
+Node* getMin(Node* node) {
+    while (node->left != nullptr) node = node->left;
+    return node;
+}
+
+Node* deleteNode(Node* node, int key) {
+    if (node == nullptr) return node;
+
+    if (key < node->key) node->left = deleteNode(node->left, key);
+    else if (key > node->key) node->right = deleteNode(node->right, key);
+    else {
+        if (node->left == nullptr || node->right == nullptr) {
+            Node* temp = nullptr;
+            if (node->left != nullptr) temp = node->left;
+            else temp = node->right;
+
+            if (temp == nullptr) {
+                temp = node;
+                node = nullptr;
+            }
+            else {
+                *node = *temp;
+            }
+            delete temp;
+        }
+        else {
+            Node* temp = getMin(node->right);
+            node->key = temp->key;
+            node->right = deleteNode(node->right, temp->key);
+        }
+    }
+
+    if (node == nullptr) return node;
+
+    fixH(node);
+    int bal = getBal(node);
+
+    if (bal > 1) {
+        if (getBal(node->left) >= 0) return rotateR(node);
+        else {
+            node->left = rotateL(node->left);
+            return rotateR(node);
+        }
+    }
+    if (bal < -1) {
+        if (getBal(node->right) <= 0) return rotateL(node);
+        else {
+            node->right = rotateR(node->right);
+            return rotateL(node);
+        }
+    }
+    return node;
+}
+
+// Graph Structure
+struct Edge {
+    int dest;
+    int weight;
+};
+
+struct List {
+    Edge edges[maxedges];
+    int count;
+    List() { count = 0; }
+    void add(int d, int w) {
+        if (count < maxedges) {
+            edges[count].dest = d;
+            edges[count].weight = w;
+            count++;
+        }
+    }
+};
+
+struct Graph {
+    List adj[maxnodes];
+    int nodes[maxnodes];
+    int nodeCount;
+
+    Graph() { nodeCount = 0; }
+
+    void addNode(int u) {
+        for (int i = 0; i < nodeCount; i++) {
+            if (nodes[i] == u) return;
+        }
+        if (nodeCount < maxnodes) {
+            nodes[nodeCount] = u;
+            nodeCount++;
+        }
+    }
+
+    void addEdge(int u, int v, int w) {
+        addNode(u);
+        addNode(v);
+        adj[u].add(v, w);
+        adj[v].add(u, w);
+    }
+};
+
+Graph g;
+
+string graphState(int u, string info, string mst = "[]") {
+    stringstream ss;
+    ss << "{\"curr\":" << u << ",\"info\":\"" << info << "\",\"mst\":" << mst << "}";
+    return ss.str();
+}
+
+struct MyQueue {
+    int arr[maxnodes];
+    int f, r;
+    MyQueue() { f = 0; r = 0; }
+    void push(int x) { arr[r++] = x; }
+    int pop() { return arr[f++]; }
+    bool empty() { return f >= r; }
+};
+
+struct MyStack {
+    int arr[maxnodes];
+    int top;
+    MyStack() { top = -1; }
+    void push(int x) { arr[++top] = x; }
+    int pop() { return arr[top--]; }
+    bool empty() { return top < 0; }
+};
+
+struct PQItem {
+    int p;
+    int u;
+    int par;
+};
+
+struct MyPQ {
+    PQItem heap[maxnodes * maxedges];
+    int size;
+
+    MyPQ() { size = 0; }
+
+    void swapItems(int i, int j) {
+        PQItem t = heap[i];
+        heap[i] = heap[j];
+        heap[j] = t;
+    }
+
+    void push(int p, int u, int par = -1) {
+        heap[size].p = p;
+        heap[size].u = u;
+        heap[size].par = par;
+        int i = size;
+        size++;
+
+        while (i > 0) {
+            int parent = (i - 1) / 2;
+            if (heap[i].p < heap[parent].p) {
+                swapItems(i, parent);
+                i = parent;
+            }
+            else break;
+        }
+    }
+
+    PQItem pop() {
+        PQItem ret = heap[0];
+        heap[0] = heap[size - 1];
+        size--;
+        int i = 0;
+        while (true) {
+            int l = 2 * i + 1;
+            int r = 2 * i + 2;
+            int s = i;
+            if (l < size && heap[l].p < heap[s].p) s = l;
+            if (r < size && heap[r].p < heap[s].p) s = r;
+            if (s != i) {
+                swapItems(i, s);
+                i = s;
+            }
+            else break;
+        }
+        return ret;
+    }
+
+    bool empty() { return size == 0; }
+};
+
+void doBFS(int start) {
+    resetHistory();
+    MyQueue q;
+    bool vis[maxnodes] = { false };
+
+    q.push(start);
+    vis[start] = true;
+
+    while (!q.empty()) {
+        int u = q.pop();
+        record("visit", "Visiting " + to_string(u), graphState(u, "Current"));
+
+        for (int i = 0; i < g.adj[u].count; i++) {
+            int v = g.adj[u].edges[i].dest;
+            if (!vis[v]) {
+                vis[v] = true;
+                q.push(v);
+                record("visit", "Queued " + to_string(v), graphState(u, "Queueing"));
+            }
+        }
+    }
+}
+
+void doDFS(int start) {
+    resetHistory();
+    MyStack s;
+    bool vis[maxnodes] = { false };
+
+    s.push(start);
+
+    while (!s.empty()) {
+        int u = s.pop();
+        if (!vis[u]) {
+            vis[u] = true;
+            record("visit", "Visiting " + to_string(u), graphState(u, "Stack Pop"));
+
+            for (int i = g.adj[u].count - 1; i >= 0; i--) {
+                int v = g.adj[u].edges[i].dest;
+                if (!vis[v]) s.push(v);
+            }
+        }
+    }
+}
+
+void doDijkstra(int start) {
+    resetHistory();
+    MyPQ pq;
+    int dist[maxnodes];
+
+    for (int i = 0; i < maxnodes; i++) dist[i] = infval;
+
+    dist[start] = 0;
+    pq.push(0, start);
+
+    while (!pq.empty()) {
+        PQItem curr = pq.pop();
+        int d = curr.p;
+        int u = curr.u;
+
+        if (d > dist[u]) continue;
+
+        record("visit", "Processing " + to_string(u), graphState(u, "Dist: " + to_string(d)));
+
+        for (int i = 0; i < g.adj[u].count; i++) {
+            int v = g.adj[u].edges[i].dest;
+            int w = g.adj[u].edges[i].weight;
+
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                pq.push(dist[v], v);
+                record("update", "Relaxed " + to_string(v), graphState(v, "New Dist: " + to_string(dist[v])));
+            }
+        }
+    }
+}
+
+void doPrim(int start) {
+    resetHistory();
+    MyPQ pq;
+    bool inMST[maxnodes] = { false };
+
+    struct MstEdge { string id; };
+    MstEdge mstList[maxnodes];
+    int mstCount = 0;
+
+    pq.push(0, start, -1);
+
+    while (!pq.empty()) {
+        PQItem curr = pq.pop();
+        int u = curr.u;
+        int p = curr.par;
+        int w = curr.p;
+
+        if (inMST[u]) continue;
+        inMST[u] = true;
+
+        auto getMstStr = [&]() {
+            stringstream ss; ss << "[";
+            for (int i = 0; i < mstCount; i++) {
+                ss << "\"" << mstList[i].id << "\"";
+                if (i < mstCount - 1) ss << ",";
+            }
+            ss << "]"; return ss.str();
+            };
+
+        if (p != -1) {
+            mstList[mstCount].id = to_string(p) + "-" + to_string(u);
+            mstCount++;
+            record("mst_add", "Added Edge " + to_string(p) + "-" + to_string(u), graphState(u, "MST Edge", getMstStr()));
+        }
+        else {
+            record("visit", "Start Node", graphState(u, "Start", getMstStr()));
+        }
+
+        for (int i = 0; i < g.adj[u].count; i++) {
+            int v = g.adj[u].edges[i].dest;
+            int weight = g.adj[u].edges[i].weight;
+            if (!inMST[v]) {
+                pq.push(weight, v, u);
+                record("update", "Scanning " + to_string(v), graphState(u, "Scanning", getMstStr()));
+            }
+        }
+    }
+}
+
+// Hash Table
+struct Bucket {
+    int vals[50];
+    int count;
+    Bucket() { count = 0; }
+    void add(int v) {
+        if (count < 50) vals[count++] = v;
+    }
+};
+
+Bucket table[hashcap];
+
+string tableJson() {
+    stringstream ss; ss << "[";
+    for (int i = 0; i < hashcap; i++) {
+        ss << "[";
+        for (int j = 0; j < table[i].count; j++) {
+            ss << table[i].vals[j];
+            if (j < table[i].count - 1) ss << ",";
+        }
+        ss << "]";
+        if (i < hashcap - 1) ss << ",";
+    }
+    ss << "]";
+    return ss.str();
+}
+
+void putHash(int v) {
+    resetHistory();
+    int idx = v % hashcap;
+    record("calc", "Index: " + to_string(idx), tableJson());
+    table[idx].add(v);
+    record("highlight", "Inserted " + to_string(v), tableJson());
+}
+
+string buffer;
+
+extern "C" {
+    const char* get_trace() {
+        stringstream ss; ss << "[";
+        for (int i = 0; i < stepCount; ++i) {
+            ss << history[i];
+            if (i < stepCount - 1) ss << ",";
+        }
+        ss << "]";
+        buffer = ss.str();
+        return buffer.c_str();
+    }
+
+    const char* get_heap_data() {
+        buffer = heapObj.toJson();
+        return buffer.c_str();
+    }
+
+    void heap_set_mode(int m) {
+        if (m == 1) heapObj.isMin = true;
+        else heapObj.isMin = false;
+        heapObj.size = 0;
+    }
+
+    const char* heap_insert(int v) {
+        heapObj.add(v);
+        return get_trace();
+    }
+
+    const char* heap_extract() {
+        heapObj.remove();
+        return get_trace();
+    }
+
+    void avl_insert(int v) {
+        resetHistory();
+        treeRoot = insertNode(treeRoot, v);
+        record("final", "Done", treeJson(treeRoot));
+    }
+
+    void avl_delete(int v) {
+        resetHistory();
+        treeRoot = deleteNode(treeRoot, v);
+        record("final", "Deleted", treeJson(treeRoot));
+    }
+
+    const char* get_avl_json() {
+        buffer = treeJson(treeRoot);
+        return buffer.c_str();
+    }
+
+    void graph_add_edge(int u, int v, int w) {
+        g.addEdge(u, v, w);
+    }
+
+    const char* run_bfs(int s) {
+        doBFS(s);
+        return get_trace();
+    }
+
+    const char* run_dfs(int s) {
+        doDFS(s);
+        return get_trace();
+    }
+
+    void run_dijkstra(int s) {
+        doDijkstra(s);
+    }
+
+    const char* run_prim(int s) {
+        doPrim(s);
+        return get_trace();
+    }
+
+    const char* get_graph_json() {
+        stringstream ss;
+        ss << "{\"nodes\":[";
+        for (int i = 0; i < g.nodeCount; i++) {
+            ss << g.nodes[i];
+            if (i < g.nodeCount - 1) ss << ",";
+        }
+        ss << "],\"edges\":[";
+        bool first = true;
+        for (int i = 0; i < g.nodeCount; i++) {
+            int u = g.nodes[i];
+            for (int j = 0; j < g.adj[u].count; j++) {
+                int v = g.adj[u].edges[j].dest;
+                if (u >= v) continue;
+                if (!first) ss << ",";
+                ss << "{\"u\":" << u << ",\"v\":" << v << ",\"w\":" << g.adj[u].edges[j].weight << "}";
+                first = false;
+            }
+        }
+        ss << "]}";
+        buffer = ss.str();
+        return buffer.c_str();
+    }
+
+    void hash_insert(int v) {
+        putHash(v);
+    }
+
+    const char* get_hash_json() {
+        buffer = tableJson();
+        return buffer.c_str();
+    }
+
+    const char* get_log() {
+        buffer = systemLog;
+        return buffer.c_str();
+    }
+}
+
+int main() {
+    return 0;
+}

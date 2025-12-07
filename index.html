@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Structure Visualizer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .header {
+            background-color: #ffffff;
+            width: 100%;
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .nav-container {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: none;
+            color: #6c757d;
+            padding: 10px 20px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-size: 15px;
+        }
+
+        .nav-btn:hover {
+            background-color: #e9ecef;
+            color: #495057;
+        }
+
+        .nav-btn.active {
+            background-color: #007bff;
+            color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 123, 255, 0.2);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
+            margin-bottom: 40px;
+        }
+
+        #log-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+            text-align: left;
+            font-size: 16px;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        #log-msg {
+            font-weight: 500;
+        }
+
+        .controls {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 25px;
+            border: 1px solid #e9ecef;
+        }
+
+        input {
+            padding: 10px 15px;
+            width: 100px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: #80bdff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        button:active {
+            transform: translateY(1px);
+            box-shadow: none;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-primary { background-color: #007bff; }
+        .btn-success { background-color: #28a745; }
+        .btn-danger { background-color: #dc3545; }
+        .btn-warning { background-color: #ffc107; color: #212529; }
+        .btn-info { background-color: #17a2b8; }
+        .btn-dark { background-color: #343a40; }
+
+        canvas {
+            background-color: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            width: 100%;
+            height: 500px;
+            display: block;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .separator {
+            width: 1px;
+            height: 24px;
+            background-color: #dee2e6;
+            margin: 0 8px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                padding: 15px;
+            }
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            input, button {
+                width: 100%;
+            }
+            .nav-container {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="nav-container">
+            <button class="nav-btn active" onclick="switchTab('heap')">Binary Heap</button>
+            <button class="nav-btn" onclick="switchTab('avl')">AVL Tree</button>
+            <button class="nav-btn" onclick="switchTab('hash')">Hash Table</button>
+            <button class="nav-btn" onclick="switchTab('graph')">Graph Algorithms</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="log-box">
+            <span id="log-msg">System initialized. Ready for input.</span>
+        </div>
+
+        <div id="heap" class="tab-content">
+            <div class="controls">
+                <button class="btn-success" onclick="setHeapMode(1)">Min Heap</button>
+                <button class="btn-danger" onclick="setHeapMode(0)">Max Heap</button>
+                <div class="separator"></div>
+                <input type="number" id="heapInput" placeholder="Value">
+                <button class="btn-primary" onclick="executeHeap('insert')">Insert</button>
+                <button class="btn-warning" onclick="executeHeap('extract')">Extract Root</button>
+            </div>
+            <canvas id="heapCanvas" width="900" height="500"></canvas>
+        </div>
+
+        <div id="avl" class="tab-content hidden">
+            <div class="controls">
+                <input type="number" id="avlInput" placeholder="Value">
+                <button class="btn-primary" onclick="executeAvl('insert')">Insert Node</button>
+                <button class="btn-danger" onclick="executeAvl('delete')">Delete Node</button>
+                <div class="separator"></div>
+                <button class="btn-info" onclick="displayLog('Supported rotations: LL, RR, LR, RL', 'info')">Info</button>
+            </div>
+            <canvas id="avlCanvas" width="900" height="500"></canvas>
+        </div>
+
+        <div id="hash" class="tab-content hidden">
+            <div class="controls">
+                <input type="number" id="hashInput" placeholder="Value">
+                <button class="btn-dark" onclick="executeHash()">Insert Value</button>
+            </div>
+            <canvas id="hashCanvas" width="900" height="500"></canvas>
+        </div>
+
+        <div id="graph" class="tab-content hidden">
+            <div class="controls">
+                <input type="number" id="nodeU" placeholder="From" style="width: 70px;">
+                <input type="number" id="nodeV" placeholder="To" style="width: 70px;">
+                <input type="number" id="weight" placeholder="Weight" style="width: 70px;">
+                <button class="btn-primary" onclick="addGraphEdge()">Add Edge</button>
+                <div class="separator"></div>
+                <input type="number" id="startNode" placeholder="Start" style="width: 80px;">
+                <button class="btn-success" onclick="runGraphAlgorithm('bfs')">BFS</button>
+                <button class="btn-info" onclick="runGraphAlgorithm('dfs')">DFS</button>
+                <button class="btn-warning" onclick="runGraphAlgorithm('dijkstra')">Dijkstra</button>
+                <button class="btn-dark" onclick="runGraphAlgorithm('prim')">Prim MST</button>
+            </div>
+            <canvas id="graphCanvas" width="900" height="500"></canvas>
+        </div>
+    </div>
+
+    <script src="dsaProject.js"></script>
+    <script>
+        let cppHeapSetMode, cppHeapInsert, cppHeapExtract, cppGetTrace;
+        let cppAvlInsert, cppAvlDelete, cppGetAvlJson;
+        let cppGraphAddEdge, cppRunBfs, cppRunDfs, cppRunDijkstra, cppRunPrim, cppGetGraphJson;
+        let cppHashInsert, cppGetHashJson;
+        
+        const STEP_DELAY = 1200;
+
+        Module.onRuntimeInitialized = function() {
+            cppHeapSetMode = Module.cwrap('heap_set_mode', null, ['number']);
+            cppHeapInsert = Module.cwrap('heap_insert', 'string', ['number']);
+            cppHeapExtract = Module.cwrap('heap_extract', 'string');
+            cppGetTrace = Module.cwrap('get_trace', 'string');
+
+            cppAvlInsert = Module.cwrap('avl_insert', null, ['number']);
+            cppAvlDelete = Module.cwrap('avl_delete', null, ['number']);
+            cppGetAvlJson = Module.cwrap('get_avl_json', 'string');
+
+            cppGraphAddEdge = Module.cwrap('graph_add_edge', null, ['number','number','number']);
+            cppRunBfs = Module.cwrap('run_bfs', null, ['number']);
+            cppRunDfs = Module.cwrap('run_dfs', null, ['number']);
+            cppRunDijkstra = Module.cwrap('run_dijkstra', null, ['number']);
+            cppRunPrim = Module.cwrap('run_prim', null, ['number']);
+            cppGetGraphJson = Module.cwrap('get_graph_json', 'string');
+            
+            cppHashInsert = Module.cwrap('hash_insert', null, ['number']);
+            cppGetHashJson = Module.cwrap('get_hash_json', 'string');
+
+            cppGetTrace = Module.cwrap('get_trace', 'string');
+            
+            cppHeapSetMode(1);
+            displayLog("System initialized and ready.", "success");
+        };
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            displayLog("Switched to " + tabId.replace(/^\w/, c => c.toUpperCase()) + " view.");
+            
+            if (tabId === 'graph') renderStaticGraph();
+        }
+
+        function displayLog(message, type = "info") {
+            const logBox = document.getElementById('log-box');
+            const logText = document.getElementById('log-msg');
+            
+            logText.innerText = message;
+            
+            let borderColor = "#6c757d";
+            let bgColor = "#f8f9fa";
+
+            if (type === 'compare') {
+                borderColor = "#ffc107";
+                bgColor = "#fff3cd";
+            } else if (type === 'swap' || type === 'rotate') {
+                borderColor = "#dc3545";
+                bgColor = "#f8d7da";
+            } else if (type === 'calc') {
+                borderColor = "#007bff";
+                bgColor = "#cce5ff";
+            } else if (type === 'success' || type === 'mst_add' || type === 'final') {
+                borderColor = "#28a745";
+                bgColor = "#d4edda";
+            } else if (type === 'visit' || type === 'update') {
+                borderColor = "#17a2b8";
+                bgColor = "#d1ecf1";
+            }
+
+            logBox.style.borderLeftColor = borderColor;
+            logBox.style.backgroundColor = bgColor;
+        }
+
+        function animateTrace(traceString, drawFunction) {
+            let steps = [];
+            try {
+                steps = JSON.parse(traceString);
+            } catch (e) {
+                displayLog("Error parsing trace data.", "error");
+                return;
+            }
+            
+            let currentStep = 0;
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = true);
+
+            function nextStep() {
+                if (currentStep >= steps.length) {
+                    buttons.forEach(btn => btn.disabled = false);
+                    displayLog("Operation completed.", "success");
+                    return;
+                }
+                
+                const stepData = steps[currentStep];
+                displayLog(stepData.desc, stepData.type);
+                drawFunction(stepData);
+                
+                currentStep++;
+                setTimeout(nextStep, STEP_DELAY);
+            }
+            nextStep();
+        }
+
+        function setHeapMode(mode) {
+            cppHeapSetMode(mode);
+            displayLog(mode ? "Switched to Min Heap mode." : "Switched to Max Heap mode.", "info");
+        }
+
+        function executeHeap(operation) {
+            const inputVal = document.getElementById('heapInput').value;
+            let traceOutput;
+            
+            if (operation === 'insert') {
+                if (!inputVal) return;
+                traceOutput = cppHeapInsert(parseInt(inputVal));
+            } else {
+                traceOutput = cppHeapExtract();
+                if (traceOutput.includes("Heap Empty")) {
+                    displayLog("Heap is empty.", "error");
+                    return;
+                }
+            }
+            animateTrace(traceOutput, renderHeapStep);
+        }
+
+        function renderHeapStep(step) {
+            const canvas = document.getElementById('heapCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            let arrayData = step.data.indices ? step.data.arr : (step.data.arr ? step.data.arr : []);
+            if (arrayData.length === 0 && !step.data.indices) {
+                 try {
+                     arrayData = JSON.parse(Module.cwrap('get_heap_data', 'string')());
+                 } catch(e) {}
+            }
+            
+            if (!arrayData || arrayData.length === 0) return;
+
+            const highlightedIndices = step.data.indices || [];
+
+            arrayData.forEach((value, index) => {
+                const level = Math.floor(Math.log2(index + 1));
+                const x = (width / (Math.pow(2, level) + 1)) * ((index + 1) - Math.pow(2, level) + 1);
+                const y = 50 + level * 80;
+
+                if (index > 0) {
+                    const parentIndex = Math.floor((index - 1) / 2);
+                    const parentLevel = Math.floor(Math.log2(parentIndex + 1));
+                    const parentX = (width / (Math.pow(2, parentLevel) + 1)) * ((parentIndex + 1) - Math.pow(2, parentLevel) + 1);
+                    const parentY = 50 + parentLevel * 80;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(parentX, parentY);
+                    ctx.lineTo(x, y);
+                    ctx.strokeStyle = "#adb5bd";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+
+                ctx.beginPath();
+                ctx.arc(x, y, 25, 0, 2 * Math.PI);
+                
+                let fillColor = "#28a745";
+                if (highlightedIndices.includes(index)) {
+                    if (step.type === 'compare') fillColor = "#ffc107";
+                    else if (step.type === 'swap') fillColor = "#dc3545";
+                    else fillColor = "#007bff";
+                }
+                
+                ctx.fillStyle = fillColor;
+                ctx.fill(); 
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#343a40';
+                ctx.stroke();
+
+                ctx.fillStyle = "white"; 
+                ctx.font = "bold 16px Segoe UI"; 
+                ctx.textAlign = "center"; 
+                ctx.fillText(value, x, y + 6);
+            });
+        }
+
+        function executeAvl(operation) {
+            const inputVal = document.getElementById('avlInput').value;
+            if (!inputVal) return;
+            
+            if (operation === 'insert') cppAvlInsert(parseInt(inputVal));
+            else cppAvlDelete(parseInt(inputVal));
+            
+            animateTrace(cppGetTrace(), renderAvlStep);
+        }
+
+        function renderAvlStep(step) {
+            let rootNode;
+            try {
+                rootNode = step.data;
+            } catch (e) {
+                rootNode = JSON.parse(cppGetAvlJson());
+            }
+
+            const ctx = document.getElementById('avlCanvas').getContext('2d');
+            ctx.clearRect(0, 0, 900, 500);
+            if (rootNode) drawAvlNode(ctx, rootNode, 450, 50, 200);
+        }
+        
+        function drawAvlNode(ctx, node, x, y, offset) {
+            if (node.l && node.l !== 'null') {
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x - offset, y + 60);
+                ctx.strokeStyle = "#adb5bd";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                drawAvlNode(ctx, node.l, x - offset, y + 60, offset / 2);
+            }
+            if (node.r && node.r !== 'null') {
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + offset, y + 60);
+                ctx.strokeStyle = "#adb5bd";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                drawAvlNode(ctx, node.r, x + offset, y + 60, offset / 2);
+            }
+            
+            ctx.beginPath();
+            ctx.arc(x, y, 25, 0, 2 * Math.PI);
+            
+            let balanceFactor = parseInt(node.h);
+            let fillColor = "#007bff";
+            
+            if (Math.abs(balanceFactor) > 1) {
+                fillColor = "#dc3545";
+            } else if (balanceFactor !== 0) {
+                 fillColor = "#17a2b8";
+            }
+            
+            ctx.fillStyle = fillColor;
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#343a40';
+            ctx.stroke();
+
+            ctx.fillStyle = "white";
+            ctx.font = "bold 16px Segoe UI";
+            ctx.textAlign = "center";
+            ctx.fillText(node.k, x, y + 6);
+            
+            ctx.fillStyle = "#495057";
+            ctx.font = "12px Segoe UI";
+            ctx.fillText("BF: " + balanceFactor, x, y + 40);
+        }
+
+        function executeHash() {
+            const val = document.getElementById('hashInput').value;
+            if (!val) return;
+            cppHashInsert(parseInt(val));
+            animateTrace(cppGetTrace(), renderHashStep);
+        }
+        
+        function renderHashStep(step) {
+            const tableData = step.data;
+            const ctx = document.getElementById('hashCanvas').getContext('2d');
+            ctx.clearRect(0, 0, 900, 500);
+            
+            tableData.forEach((bucket, index) => {
+                const yPos = 40 + index * 45;
+                
+                ctx.fillStyle = "#e9ecef";
+                ctx.fillRect(50, yPos - 18, 50, 40);
+                ctx.strokeStyle = "#ced4da";
+                ctx.strokeRect(50, yPos - 18, 50, 40);
+                
+                ctx.fillStyle = "#343a40";
+                ctx.font = "bold 16px Segoe UI";
+                ctx.textAlign = "center";
+                ctx.fillText(index, 75, yPos + 8);
+
+                bucket.forEach((value, chainIndex) => {
+                    const xPos = 150 + chainIndex * 80;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(xPos - 50, yPos);
+                    ctx.lineTo(xPos, yPos);
+                    ctx.strokeStyle = "#6c757d";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = "#6610f2";
+                    ctx.fillRect(xPos, yPos - 18, 60, 40);
+                    ctx.strokeStyle = "#343a40";
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(xPos, yPos - 18, 60, 40);
+                    
+                    ctx.fillStyle = "white";
+                    ctx.font = "bold 16px Segoe UI";
+                    ctx.fillText(value, xPos + 30, yPos + 8);
+                });
+            });
+        }
+
+        let graphPositions = {};
+        
+        function addGraphEdge() {
+            const u = document.getElementById('nodeU').value;
+            const v = document.getElementById('nodeV').value;
+            const w = document.getElementById('weight').value || 1;
+            
+            if (!u || !v) return;
+            
+            cppGraphAddEdge(parseInt(u), parseInt(v), parseInt(w));
+            renderStaticGraph();
+            displayLog(`Added edge between node ${u} and ${v} with weight ${w}.`, "success");
+        }
+        
+        function runGraphAlgorithm(algorithm) {
+            const startNode = document.getElementById('startNode').value;
+            if (!startNode) {
+                displayLog("Please enter a start node.", "error");
+                return;
+            }
+            
+            const start = parseInt(startNode);
+            if (algorithm === 'bfs') cppRunBfs(start);
+            else if (algorithm === 'dfs') cppRunDfs(start);
+            else if (algorithm === 'dijkstra') cppRunDijkstra(start);
+            else cppRunPrim(start);
+
+            animateTrace(cppGetTrace(), renderGraphStep);
+        }
+
+        function renderStaticGraph() {
+            const graphData = JSON.parse(cppGetGraphJson());
+            const ctx = document.getElementById('graphCanvas').getContext('2d');
+            ctx.clearRect(0, 0, 900, 500);
+            
+            const centerX = 450;
+            const centerY = 250;
+            const radius = 200;
+            
+            graphData.nodes.forEach((node, index) => {
+                const angle = (index / graphData.nodes.length) * 2 * Math.PI;
+                graphPositions[node] = {
+                    x: centerX + radius * Math.cos(angle),
+                    y: centerY + radius * Math.sin(angle)
+                };
+            });
+            
+            drawGraphEdges(ctx, graphData.edges, []);
+            drawGraphNodes(ctx, graphData.nodes, null);
+        }
+
+        function renderGraphStep(step) {
+            const graphData = JSON.parse(cppGetGraphJson());
+            const ctx = document.getElementById('graphCanvas').getContext('2d');
+            ctx.clearRect(0, 0, 900, 500);
+            
+            const mstEdges = step.data.mst || [];
+            drawGraphEdges(ctx, graphData.edges, mstEdges);
+            drawGraphNodes(ctx, graphData.nodes, step.data.curr);
+            
+            ctx.fillStyle = "#343a40";
+            ctx.font = "bold 16px Segoe UI";
+            ctx.textAlign = "center";
+            let infoText = step.data.info;
+            ctx.fillText(infoText, 450, 480);
+        }
+
+        function drawGraphEdges(ctx, edges, mstList) {
+            edges.forEach(edge => {
+                const p1 = graphPositions[edge.u];
+                const p2 = graphPositions[edge.v];
+                
+                if (!p1 || !p2) return;
+
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                
+                const id1 = edge.u + "-" + edge.v;
+                const id2 = edge.v + "-" + edge.u;
+                const isMstEdge = mstList.includes(id1) || mstList.includes(id2);
+                
+                if (isMstEdge) {
+                    ctx.strokeStyle = "#28a745";
+                    ctx.lineWidth = 4;
+                } else {
+                    ctx.strokeStyle = "#dee2e6";
+                    ctx.lineWidth = 2;
+                }
+                
+                ctx.stroke();
+                
+                if (mstList.length === 0 || isMstEdge) {
+                    ctx.fillStyle = "#dc3545";
+                    ctx.font = "14px Segoe UI";
+                    ctx.fillText(edge.w, (p1.x + p2.x) / 2, (p1.y + p2.y) / 2 - 8);
+                }
+            });
+        }
+
+        function drawGraphNodes(ctx, nodes, activeNode) {
+            nodes.forEach(node => {
+                const pos = graphPositions[node];
+                if (!pos) return;
+
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 25, 0, 2 * Math.PI);
+                
+                ctx.fillStyle = (node == activeNode) ? "#dc3545" : "#343a40";
+                
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = 'white';
+                ctx.stroke();
+
+                ctx.fillStyle = "white";
+                ctx.font = "bold 15px Segoe UI";
+                ctx.fillText(node, pos.x, pos.y + 5);
+            });
+        }
+    </script>
+</body>
+</html>
